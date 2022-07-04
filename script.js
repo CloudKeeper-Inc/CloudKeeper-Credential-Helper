@@ -223,10 +223,6 @@ function outputDocAsDownload(docContent) {
     console.log(err.message);
   }
 }
-chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-  console.log("Keeping alive -");
-  console.log("CloudKeeper - Credential Helper - Service Worker");
-});
 
 // This Listener receives messages from options.js and popup.js
 // Received messages are meant to affect the background process.
