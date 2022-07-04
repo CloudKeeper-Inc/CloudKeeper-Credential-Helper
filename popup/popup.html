@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CloudKeeper - Credential Helper</title>
+    <style>
+      div.status {
+        width: 200px;
+      }
+      a.button {
+        -webkit-appearance: button;
+        -webkit-padding-after: 3px;
+        -webkit-padding-before: 3px;
+        -webkit-padding-end: 3px;
+        -webkit-padding-start: 3px;
+        text-decoration: none;
+        color: initial;
+        margin-top: 15px;
+      }
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 30px;
+        height: 17px;
+      }
+
+      /* Hide default HTML checkbox */
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      /* The slider */
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        -webkit-transition: 0.4s;
+        transition: 0.4s;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 13px;
+        width: 13px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        -webkit-transition: 0.4s;
+        transition: 0.4s;
+      }
+
+      input:checked + .slider {
+        background-color: #2196f3;
+      }
+
+      input:focus + .slider {
+        box-shadow: 0 0 1px #2196f3;
+      }
+
+      input:checked + .slider:before {
+        -webkit-transform: translateX(13px);
+        -ms-transform: translateX(136px);
+        transform: translateX(13px);
+      }
+
+      /* Rounded sliders */
+      .slider.round {
+        border-radius: 17px;
+      }
+
+      .slider.round:before {
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="status">
+      <h3>CloudKeeper - Credential Helper</h3>
+      <p>Toggle the switch to enable or disable the helper</p>
+      <label class="switch">
+        <input type="checkbox" id="chkboxactivated" />
+        <span class="slider round"></span>
+      </label>
+      <br />
+      <p id="AccessKeyId"></p>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

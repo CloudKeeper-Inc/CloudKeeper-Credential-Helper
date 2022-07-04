@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "author": "CloudKeeper",
+  "homepage_url": "https://pro.cloudkeeper.ai",
+  "name": "CloudKeeper - Credential Helper",
+  "description": "AWS SSO External AWS Account - STS Keys Generator",
+  "version": "1.0.1",
+  "icons": {
+    "32": "icons/icon_crop_128.png",
+    "128": "icons/icon_crop_128.png"
+  },
+  "action": {
+    "default_icon": "icons/icon_crop_128.png",
+    "default_popup": "popup/popup.html"
+  },
+  "background": {
+    "service_worker": "script.js"
+  },
+  "permissions": ["webRequest", "storage"],
+  "host_permissions": ["https://signin.aws.amazon.com/saml"]
+}
