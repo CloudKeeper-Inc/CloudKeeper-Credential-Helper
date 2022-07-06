@@ -6,6 +6,10 @@ var DebugLogs = false;
 var RoleArns = {};
 var LF = "\n";
 loadItemsFromStorage();
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+  console.log('Keeping alive -');
+  console.log('CloudKeeper - Credential Helper - Service Worker')
+});
 chrome.storage.sync.get(
   {
     Activated: true,
