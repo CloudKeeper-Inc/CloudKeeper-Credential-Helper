@@ -6,9 +6,10 @@ var DebugLogs = false;
 var RoleArns = {};
 var LF = "\n";
 loadItemsFromStorage();
-chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-  console.log('Keeping alive -');
-  console.log('CloudKeeper - Credential Helper - Service Worker')
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+  console.log(
+    "Keeping alive -CloudKeeper - Credential Helper - Service Worker"
+  );
 });
 chrome.storage.sync.get(
   {
@@ -124,7 +125,7 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
 
   var sts = new AWS.STS();
   sts.assumeRoleWithSAML(params, function (err, data) {
-    if (err) console.log(err, err.stack); 
+    if (err) console.log(err, err.stack);
     else {
       var docContent =
         "[default]" +
