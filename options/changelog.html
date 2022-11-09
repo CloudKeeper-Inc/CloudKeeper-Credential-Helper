@@ -8,18 +8,21 @@
   <body>
     <h2>Thank you for installing/updating CloudKeeper Credential Helper</h1>
     <h3>Change Log</h3>
-    <h4>v1.0.0</h5>
+    <h4>v1.0.0</h4>
     <p>To retrieve your CLI keys, click on your external AWS Account in SSO. Once you're logged in to the console, click on the extension's icon. You should see your credentials there.</p>
     <p>Copy these credentials in the following file</p>
     <b>Linux/MacOS - ~/.aws/credentials</b>
     <br>
     <b>Windows - C:/Users/{your_user's_name}/.aws/credentials</b>
     <br>
-    <h4>v1.0.1</h5>
+    <h4>v1.0.1</h4>
     <p>Added support for persistent service worker so that the extension does not shut down automatically in some time.</p>
     <br>
-    <h4>v1.0.2</h5>
+    <h4>v1.0.2</h4>
     <p>Fixed persistence of service worker to make the extension compatible with tools like Okta, OneLogin, etc.</p>
+    <br>
+    <h4>v1.1.0</h4>
+    <p>Added SessionDuration feature. The SessionDuration will be picked from the SAML assertion. SessionDuration must be same in IAM Identity Center and the destination IAM Role</p>
     <br>
     <p>&copy 2017-2022 | To The New Pvt. Ltd.</p>
   </body>

@@ -1,7 +1,6 @@
 importScripts("../lib/aws-sdk.min.js");
 
 var FileName = "credentials";
-var ApplySessionDuration = true;
 var DebugLogs = false;
 var RoleArns = {};
 var LF = "\n";
@@ -95,7 +94,7 @@ function onBeforeRequestEvent(details) {
   }
 
   if (DebugLogs) {
-    console.log("ApplySessionDuration: " + ApplySessionDuration);
+    // console.log("ApplySessionDuration: " + ApplySessionDuration);
     // console.log('SessionDuration: ' + SessionDuration);
     console.log("hasRoleIndex: " + hasRoleIndex);
     console.log("roleIndex: " + roleIndex);
@@ -109,6 +108,28 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
   var reRole = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,<]+/i;
   // Patern for Principal (SAML Provider)
   var rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,<]+/i;
+  // Handling session duration
+  var reSessionDuration = /SessionNotOnOrAfter=.*Z"/g;
+  SessionNotOnOrAfter = samlattribute.match(reSessionDuration)[0];
+  sliced = SessionNotOnOrAfter.slice(21, -1);
+  max_timestamp = new Date(sliced).toISOString();
+  current_timestamp = new Date().toISOString();
+  console.log(current_timestamp);
+  console.log(max_timestamp);
+
+  const start = new Date(current_timestamp).getTime();
+  const end = new Date(max_timestamp).getTime();
+  let seconds = Math.round(Math.abs(end - start) / 1000);
+  const days = Math.floor(seconds / 86400);
+  seconds -= days * 86400;
+  const hours = Math.floor(seconds / 3600);
+  seconds -= hours * 3600;
+  minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
+
+  seconds += hours * 60 * 60;
+  seconds += minutes * 60;
+
   RoleArn = samlattribute.match(reRole)[0];
   PrincipalArn = samlattribute.match(rePrincipal)[0];
 
@@ -116,12 +137,22 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
     console.log("RoleArn: " + RoleArn);
     console.log("PrincipalArn: " + PrincipalArn);
   }
-
-  var params = {
-    PrincipalArn: PrincipalArn,
-    RoleArn: RoleArn,
-    SAMLAssertion: SAMLAssertion,
-  };
+  var params = {};
+  if (seconds > 3900) {
+    params = {
+      PrincipalArn: PrincipalArn,
+      RoleArn: RoleArn,
+      SAMLAssertion: SAMLAssertion,
+      DurationSeconds: seconds,
+    };
+  } else {
+    params = {
+      PrincipalArn: PrincipalArn,
+      RoleArn: RoleArn,
+      SAMLAssertion: SAMLAssertion,
+      DurationSeconds: 3600,
+    };
+  }
 
   var sts = new AWS.STS();
   sts.assumeRoleWithSAML(params, function (err, data) {
