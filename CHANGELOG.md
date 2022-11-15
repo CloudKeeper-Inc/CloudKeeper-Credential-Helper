@@ -9,3 +9,6 @@
 
 ## [1.1.0] 2022-11-09
 - Added SessionDuration feature. The SessionDuration will be picked from the SAML assertion. SessionDuration must be same in IAM Identity Center and the destination IAM Role.
+
+## [1.1.1] 2022-11-15
+- Updated SessionDuration feature.

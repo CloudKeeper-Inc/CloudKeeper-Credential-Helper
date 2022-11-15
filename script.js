@@ -150,7 +150,6 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
       PrincipalArn: PrincipalArn,
       RoleArn: RoleArn,
       SAMLAssertion: SAMLAssertion,
-      DurationSeconds: 3600,
     };
   }
 
