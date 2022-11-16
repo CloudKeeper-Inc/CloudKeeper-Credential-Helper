@@ -12,3 +12,6 @@
 
 ## [1.1.1] 2022-11-15
 - Updated SessionDuration feature.
+
+## [1.1.2] 2022-11-16
+- Resolved conflict between existing extensions.
