@@ -14,4 +14,4 @@
 - Updated SessionDuration feature.
 
 ## [1.1.2] 2022-11-16
-- Resolved conflict between existing extensions.
+- Updated the code to use default session duration when there is a mismatch in session duration between IAM and SSO.

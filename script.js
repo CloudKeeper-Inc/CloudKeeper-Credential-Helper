@@ -4,21 +4,11 @@ var FileName = "credentials";
 var DebugLogs = false;
 var RoleArns = {};
 var LF = "\n";
-loadItemsFromStorage();
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   console.log(
     "Keeping alive -CloudKeeper - Credential Helper - Service Worker"
   );
 });
-chrome.storage.sync.get(
-  {
-    Activated: true,
-  },
-  function (item) {
-    if (item.Activated) addOnBeforeRequestEventListener();
-  }
-);
-
 chrome.runtime.onInstalled.addListener(function (details) {
   if (details.reason == "install" || details.reason == "update") {
     chrome.tabs.create({ url: "../options/changelog.html" });
@@ -40,10 +30,7 @@ function addOnBeforeRequestEventListener() {
     if (DebugLogs) console.log("DEBUG: onBeforeRequest Listener added");
   }
 }
-
-function removeOnBeforeRequestEventListener() {
-  chrome.webRequest.onBeforeRequest.removeListener(onBeforeRequestEvent);
-}
+addOnBeforeRequestEventListener();
 
 function onBeforeRequestEvent(details) {
   if (DebugLogs) console.log("DEBUG: onBeforeRequest event hit!");
@@ -178,7 +165,7 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
               LF +
               "aws_session_token = " +
               data.Credentials.SessionToken;
-            outputDocAsDownload(docContent);
+            saveCredentials(docContent);
           }
         }
     });
@@ -195,18 +182,12 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
         LF +
         "aws_session_token = " +
         data.Credentials.SessionToken;
-      outputDocAsDownload(docContent);
+      saveCredentials(docContent);
     }
   });
 }
 
-function outputDocAsDownload(docContent) {
-  if (DebugLogs) {
-    console.log(
-      "DEBUG: Now going to download credentials file. Document content:"
-    );
-    console.log(docContent);
-  }
+function saveCredentials(docContent) {
 
   try {
     chrome.storage.sync.clear();
@@ -215,48 +196,4 @@ function outputDocAsDownload(docContent) {
     console.log(err.message);
   }
 }
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action == "reloadStorageItems") {
-    loadItemsFromStorage();
-    sendResponse({ message: "Storage items reloaded in background process." });
-  }
-  if (request.action == "addWebRequestEventListener") {
-    if (DebugLogs) console.log("DEBUG: Extension enabled from popup");
-    addOnBeforeRequestEventListener();
-    sendResponse({
-      message: "webRequest EventListener added in background process.",
-    });
-  }
-  if (request.action == "removeWebRequestEventListener") {
-    if (DebugLogs) console.log("DEBUG: Extension disabled from popup");
-    removeOnBeforeRequestEventListener();
-    sendResponse({
-      message: "webRequest EventListener removed in background process.",
-    });
-  }
-});
 
-function loadItemsFromStorage() {
-  chrome.storage.sync.get(
-    {
-      FileName: "credentials",
-      ApplySessionDuration: "yes",
-      DebugLogs: "no",
-      RoleArns: {},
-    },
-    function (items) {
-      FileName = items.FileName;
-      if (items.ApplySessionDuration == "no") {
-        ApplySessionDuration = false;
-      } else {
-        ApplySessionDuration = true;
-      }
-      if (items.DebugLogs == "no") {
-        DebugLogs = false;
-      } else {
-        DebugLogs = false;
-      }
-      RoleArns = items.RoleArns;
-    }
-  );
-}
