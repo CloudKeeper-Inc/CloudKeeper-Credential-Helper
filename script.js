@@ -155,7 +155,34 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
 
   var sts = new AWS.STS();
   sts.assumeRoleWithSAML(params, function (err, data) {
-    if (err) console.log(err, err.stack);
+    if (err){
+      console.log("Handling session duration mismatch between SSO and IAM")
+      new_params = {
+        PrincipalArn: PrincipalArn,
+        RoleArn: RoleArn,
+        SAMLAssertion: SAMLAssertion,
+      };
+      var new_sts = new AWS.STS();
+      new_sts.assumeRoleWithSAML(new_params, function (err, data) {
+        if (err) console.log(err, err.stack);
+        else{
+          {
+            var docContent =
+              "[default]" +
+              LF +
+              "aws_access_key_id = " +
+              data.Credentials.AccessKeyId +
+              LF +
+              "aws_secret_access_key = " +
+              data.Credentials.SecretAccessKey +
+              LF +
+              "aws_session_token = " +
+              data.Credentials.SessionToken;
+            outputDocAsDownload(docContent);
+          }
+        }
+    });
+  }
     else {
       var docContent =
         "[default]" +
@@ -168,33 +195,7 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
         LF +
         "aws_session_token = " +
         data.Credentials.SessionToken;
-
-      if (DebugLogs) {
-        console.log("DEBUG: Successfully assumed default profile");
-        console.log("docContent:");
-        console.log(docContent);
-      }
-      if (Object.keys(RoleArns).length == 0) {
-        console.log("Generate AWS tokens file.");
-        outputDocAsDownload(docContent);
-      } else {
-        if (DebugLogs)
-          console.log("DEBUG: Additional Role ARNs are configured");
-        var profileList = Object.keys(RoleArns);
-        console.log(
-          "INFO: Do additional assume-role for role -> " +
-            RoleArns[profileList[0]]
-        );
-        assumeAdditionalRole(
-          profileList,
-          0,
-          data.Credentials.AccessKeyId,
-          data.Credentials.SecretAccessKey,
-          data.Credentials.SessionToken,
-          docContent,
-          SessionDuration
-        );
-      }
+      outputDocAsDownload(docContent);
     }
   });
 }
