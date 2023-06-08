@@ -15,3 +15,6 @@
 
 ## [1.1.2] 2022-11-16
 - Updated the code to use default session duration when there is a mismatch in session duration between IAM and SSO.
+
+## [1.2.0] 2023-06-08
+- Updated the popup to display both credentials for .aws/credentials file and for exporting to environment variables
