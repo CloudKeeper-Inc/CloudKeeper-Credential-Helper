@@ -1,0 +1,127 @@
+Manifest-Version: 1.0
+
+Name: manifest.json
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: VtlSdQVOj4reuj88QeqBK/UCNWs=
+SHA256-Digest: 4QUW90zskzRZbTQVTSHwgmwxiZ+z4snwARyVpXIQBeY=
+
+Name: background/script.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: k/1Rk/a0McvXoMdr1Twlv7Sr0dc=
+SHA256-Digest: JpcVca5zNff8336FAm/6IEH8B8tObihxsfo2nyYkZYA=
+
+Name: background/background.html
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: CoaLv3u93RmeZ6VJDCULA1lwELU=
+SHA256-Digest: XS/dxr/fSKSRi60uNcJr4uxOmc6G2gP8NvdmS6JQWlI=
+
+Name: __MACOSX/._background
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/._icons
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/._lib
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/._manifest.json
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: J3Cw66C4SBMPcMPD6g71pHu7yik=
+SHA256-Digest: 4nJoSFVrzhOHdl8PqTEFMOZaOvAHxpNK89gysArEs7E=
+
+Name: __MACOSX/._options
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/._popup
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/background/._script.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/background/._background.html
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/icons/._icon_crop_128.png
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: Gv0ARZZjnHbOTvJ6AuRoZdaCDu8=
+SHA256-Digest: u9EvXddSNGr82M+QsqQQM9qullCpb9obsUHWxNTt2t0=
+
+Name: __MACOSX/lib/._aws-sdk-2.7.5.min.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/lib/._jquery-3.1.1.min.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/options/._changelog.html
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/popup/._popup.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/popup/._popup.html
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: __MACOSX/popup/._popup.css
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: tZ0AYqiDZ0tWfAmxOrduMuGT9Ns=
+SHA256-Digest: aWdP5Z5YxCRn2pUnmqn5az9oNNl9RVK39wgrF6UUVEM=
+
+Name: icons/icon_crop_128.png
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: E21zN8e3Sxxmt+TrFTpZ2RVNr2o=
+SHA256-Digest: oUG8Vgb++++ohravP4jmxXkSdEXrWezp+6RJoLTL0WM=
+
+Name: lib/aws-sdk-2.7.5.min.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: b2GI8/YQi9Un/Swa5U87I98gcbI=
+SHA256-Digest: A7sJqXgDClrzqXIyobYRhxbqe++D0Qtc8kgJSEWwqVg=
+
+Name: lib/jquery-3.1.1.min.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: 9kem033EygVc7Tz2S7wfSQBwrLo=
+SHA256-Digest: hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=
+
+Name: options/changelog.html
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: n8ef26uHyFdVG9zkk7ne+BhArms=
+SHA256-Digest: qJ51z+Z95u44fDrXYz2GAyNitMGO09IFMG7J4dMgH4g=
+
+Name: popup/popup.js
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: rLqr7kUT60XXcxtkupnfS0JJ7wQ=
+SHA256-Digest: HpNpsFzc9xk+9T1dmQkN6lJ5d9hBqjthz8oPZxeaQBc=
+
+Name: popup/popup.html
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: cxHuNGbk0E7YX7IlnRCAOPE8rS8=
+SHA256-Digest: BYInQlAfflBCgWNJdhAx6lqt6aNjy5iOIRgKqz8F9B4=
+
+Name: popup/popup.css
+Digest-Algorithms: SHA1 SHA256
+SHA1-Digest: Ct4b/XyKQqylcW5PFkOpgBxm/Cs=
+SHA256-Digest: yD3t7kA244CJedGQphapivBGWvGeHhST3frQyS7I4cM=
+
