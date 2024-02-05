@@ -18,3 +18,6 @@
 
 ## [1.2.0] 2023-06-08
 - Updated the popup to display both credentials for .aws/credentials file and for exporting to environment variables
+
+## [1.3.0] 2024-02-05
+- Added copy buttons to the popup window
