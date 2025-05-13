@@ -10,6 +10,11 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("env_variables").innerText = data.env_variables;
   });
 
+  chrome.storage.sync.get(["posh_env_variables"], function (data) {
+    if (typeof data.posh_env_variables !== "undefined")
+      document.getElementById("posh_env_variables").innerText = data.posh_env_variables;
+  });
+
   chrome.storage.sync.clear();
 });
 
@@ -43,5 +48,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("copyEnvVariablesButton").addEventListener("click", function() {
     copyToClipboardAndUpdateButton('env_variables', 'copyEnvVariablesButton');
+  });
+  
+  document.getElementById("copyPoShEnvVariablesButton").addEventListener("click", function() {
+    copyToClipboardAndUpdateButton('posh_env_variables', 'copyPoShEnvVariablesButton');
   });
 });
