@@ -21,3 +21,6 @@
 
 ## [1.3.0] 2024-02-05
 - Added copy buttons to the popup window
+
+## [1.4.0] 2025-05-13
+- Updated to now display PowerShell AWS environment variables, alongside the previously existing credentials for the .aws/credentials file and options for exporting to environment variables.

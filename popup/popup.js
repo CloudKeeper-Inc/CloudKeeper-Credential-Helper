@@ -10,6 +10,11 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("env_variables").innerText = data.env_variables;
   });
 
+  chrome.storage.sync.get(["pwsh_env_variables"], function (data) {
+    if (typeof data.pwsh_env_variables !== "undefined")
+      document.getElementById("pwsh_env_variables").innerText = data.pwsh_env_variables;
+  });
+
   chrome.storage.sync.clear();
 });
 
@@ -43,5 +48,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("copyEnvVariablesButton").addEventListener("click", function() {
     copyToClipboardAndUpdateButton('env_variables', 'copyEnvVariablesButton');
+  });
+  
+  document.getElementById("copyPwShEnvVariablesButton").addEventListener("click", function() {
+    copyToClipboardAndUpdateButton('pwsh_env_variables', 'copyPwShEnvVariablesButton');
   });
 });
