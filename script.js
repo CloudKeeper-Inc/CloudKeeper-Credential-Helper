@@ -175,7 +175,7 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
               'export AWS_SESSION_TOKEN="',
               data.Credentials.SessionToken,'"'
             ].join('');
-            var docContentPoShEnv = [
+            var docContentPwShEnv = [
               '$Env:AWS_ACCESS_KEY_ID="',
               data.Credentials.AccessKeyId,
               '"\n',
@@ -186,7 +186,7 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
               data.Credentials.SessionToken, '"'
             ].join('');
 
-            saveCredentials(docContentEnv, docContentCred, docContentPoShEnv);
+            saveCredentials(docContentEnv, docContentCred, docContentPwShEnv);
           }
         }
       });
@@ -212,7 +212,7 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
         'export AWS_SESSION_TOKEN="',
         data.Credentials.SessionToken,'"'
       ].join('');
-      var docContentPoShEnv = [
+      var docContentPwShEnv = [
         '$Env:AWS_ACCESS_KEY_ID="',
         data.Credentials.AccessKeyId,
         '"\n',
@@ -223,17 +223,17 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
         data.Credentials.SessionToken, '"'
       ].join('');
 
-      saveCredentials(docContentEnv, docContentCred, docContentPoShEnv);
+      saveCredentials(docContentEnv, docContentCred, docContentPwShEnv);
     }
   });
 }
 
-function saveCredentials(docContentEnv, docContentCred, docContentPoShEnv) {
+function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv) {
   try {
     chrome.storage.sync.clear();
     chrome.storage.sync.set({ credentialsFile: docContentCred });
     chrome.storage.sync.set({ env_variables: docContentEnv });
-    chrome.storage.sync.set({ posh_env_variables: docContentPoShEnv });
+    chrome.storage.sync.set({ pwsh_env_variables: docContentPwShEnv });
   } catch (err) {
     console.log(err.message);
   }

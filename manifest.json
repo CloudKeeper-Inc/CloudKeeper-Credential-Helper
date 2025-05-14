@@ -1,5 +1,5 @@
 {
-  "manifest_version": 4,
+  "manifest_version": 3,
   "author": "CloudKeeper",
   "homepage_url": "https://app.cloudkeeper.com",
   "name": "CloudKeeper - Credential Helper",
