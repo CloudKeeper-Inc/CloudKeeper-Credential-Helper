@@ -2,7 +2,6 @@ var FileName = "credentials";
 var DebugLogs = true;
 var RoleArns = {};
 var LF = "\n";
-
 browser.webNavigation.onBeforeNavigate.addListener((details) => {
   console.log(
     "Keeping alive -CloudKeeper - Credential Helper - Service Worker"
@@ -174,7 +173,18 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
               'export AWS_SESSION_TOKEN="',
               data.Credentials.SessionToken,'"'
             ].join('');
-            saveCredentials(docContentEnv, docContentCred);
+            var docContentPoShEnv = [
+              '$Env:AWS_ACCESS_KEY_ID="',
+              data.Credentials.AccessKeyId,
+              '"\n',
+              '$Env:AWS_SECRET_ACCESS_KEY="',
+              data.Credentials.SecretAccessKey,
+              '"\n',
+              '$Env:AWS_SESSION_TOKEN="',
+              data.Credentials.SessionToken, '"'
+            ].join('');
+
+            saveCredentials(docContentEnv, docContentCred, docContentPoShEnv);
           }
         }
       });
@@ -200,17 +210,28 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
         'export AWS_SESSION_TOKEN="',
         data.Credentials.SessionToken,'"'
       ].join('');
+      var docContentPoShEnv = [
+        '$Env:AWS_ACCESS_KEY_ID="',
+        data.Credentials.AccessKeyId,
+        '"\n',
+        '$Env:AWS_SECRET_ACCESS_KEY="',
+        data.Credentials.SecretAccessKey,
+        '"\n',
+        '$Env:AWS_SESSION_TOKEN="',
+        data.Credentials.SessionToken, '"'
+      ].join('');
 
-      saveCredentials(docContentEnv, docContentCred);
+      saveCredentials(docContentEnv, docContentCred, docContentPoShEnv);
     }
   });
 }
 
-function saveCredentials(docContentEnv, docContentCred) {
+function saveCredentials(docContentEnv, docContentCred, docContentPoShEnv) {
   try {
     browser.storage.sync.clear();
     browser.storage.sync.set({ credentialsFile: docContentCred });
     browser.storage.sync.set({ env_variables: docContentEnv });
+    browser.storage.sync.set({ posh_env_variables: docContentPoShEnv });
   } catch (err) {
     console.log(err.message);
   }
