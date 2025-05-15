@@ -10,9 +10,9 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("env_variables").innerText = data.env_variables;
   });
 
-  browser.storage.sync.get(["posh_env_variables"], function (data) {
-    if (typeof data.posh_env_variables !== "undefined")
-      document.getElementById("posh_env_variables").innerText = data.posh_env_variables;
+  browser.storage.sync.get(["pwsh_env_variables"], function (data) {
+    if (typeof data.pwsh_env_variables !== "undefined")
+      document.getElementById("pwsh_env_variables").innerText = data.pwsh_env_variables;
   });
 
   browser.storage.sync.clear();
@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
     copyToClipboardAndUpdateButton('env_variables', 'copyEnvVariablesButton');
   });
   
-  document.getElementById("copyPoShEnvVariablesButton").addEventListener("click", function() {
-    copyToClipboardAndUpdateButton('posh_env_variables', 'copyPoShEnvVariablesButton');
+  document.getElementById("copyPwShEnvVariablesButton").addEventListener("click", function() {
+    copyToClipboardAndUpdateButton('pwsh_env_variables', 'copyPwShEnvVariablesButton');
   });
 });
