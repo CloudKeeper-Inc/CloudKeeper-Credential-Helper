@@ -1,41 +1,251 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <script src="../lib/jquery-3.1.1.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="options.css" />
-    <title>Changelog</title>
-  </head>
-  <body>
-    <h2>Thank you for installing/updating CloudKeeper Credential Helper</h1>
-    <h3>Change Log</h3>
-    <h4>v1.0.0</h4>
-    <p>To retrieve your CLI keys, click on your external AWS Account in SSO. Once you're logged in to the console, click on the extension's icon. You should see your credentials there.</p>
-    <p>Copy these credentials in the following file</p>
-    <b>Linux/MacOS - ~/.aws/credentials</b>
-    <br>
-    <b>Windows - C:/Users/{your_user's_name}/.aws/credentials</b>
-    <br>
-    <h4>v1.0.1</h4>
-    <p>Added support for persistent service worker so that the extension does not shut down automatically in some time.</p>
-    <br>
-    <h4>v1.0.2</h4>
-    <p>Fixed persistence of service worker to make the extension compatible with tools like Okta, OneLogin, etc.</p>
-    <br>
-    <h4>v1.1.0</h4>
-    <p>Added SessionDuration feature. The SessionDuration will be picked from the SAML assertion. SessionDuration must be same in IAM Identity Center and the destination IAM Role</p>
-    <br>
-    <h4>v1.1.1</h4>
-    <p>Updated SessionDuration feature</p>
-    <br>
-    <h4>v1.1.2</h4>
-    <p>Updated the code to use default session duration when there is a mismatch in session duration between IAM and SSO.</p>
-    <br>
-    <h4>v1.2.0</h4>
-    <p>Updated the popup to display both credentials for .aws/credentials file and for exporting to environment variables</p>
-    <h4>v1.3.0</h4>
-    <p>Added copy buttons in the popup window</p>
-    <h4>v1.4.0</h4>
-    <p>Updated to now display PowerShell AWS environment variables, alongside the previously existing credentials for the .aws/credentials file and options for exporting to environment variables.</p>
-    <p>&copy 2017-2022 | To The New Pvt. Ltd.</p>
-  </body>
-</html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudKeeper Credential Helper - Changelog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .changelog {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .version {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .version:last-child {
+            border-bottom: none;
+        }
+        
+        .version-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .version-number {
+            background: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .version-changes {
+            padding-left: 20px;
+        }
+        
+        .version-changes ul {
+            list-style: none;
+        }
+        
+        .version-changes li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .version-changes li:before {
+            content: "•";
+            color: #3498db;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        .version-changes p {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .version-changes p:before {
+            content: "•";
+            color: #3498db;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        
+        .version-changes b {
+            display: block;
+            margin: 4px 0;
+            font-weight: 600;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .back-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border: 2px solid #3498db;
+            border-radius: 25px;
+            transition: all 0.2s ease;
+        }
+        
+        .back-link a:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CloudKeeper Credential Helper</h1>
+            <p>Thank you for installing/updating CloudKeeper Credential Helper</p>
+        </div>
+        
+        <div class="changelog">
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.5.0</span>
+                </div>
+                <div class="version-changes">
+                    <p>Da extension now feels bonita 💅</p>
+                </div>
+            </div>
+
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.4.0</span>
+                </div>
+                <div class="version-changes">
+                    <p>Updated to now display PowerShell AWS environment variables, alongside the previously existing credentials for the .aws/credentials file and options for exporting to environment variables.</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.3.0</span>
+                </div>
+                <div class="version-changes">
+                    <p>Added copy buttons in the popup window</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.2.0</span>
+                </div>
+                <div class="version-changes">
+                    <p>Updated the popup to display both credentials for .aws/credentials file and for exporting to environment variables</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.1.2</span>
+                </div>
+                <div class="version-changes">
+                    <p>Updated the code to use default session duration when there is a mismatch in session duration between IAM and SSO.</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.1.1</span>
+                </div>
+                <div class="version-changes">
+                    <p>Updated SessionDuration feature</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.1.0</span>
+                </div>
+                <div class="version-changes">
+                    <p>Added SessionDuration feature. The SessionDuration will be picked from the SAML assertion. SessionDuration must be same in IAM Identity Center and the destination IAM Role</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.0.2</span>
+                </div>
+                <div class="version-changes">
+                    <p>Fixed persistence of service worker to make the extension compatible with tools like Okta, OneLogin, etc.</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.0.1</span>
+                </div>
+                <div class="version-changes">
+                    <p>Added support for persistent service worker so that the extension does not shut down automatically in some time.</p>
+                </div>
+            </div>
+            
+            <div class="version">
+                <div class="version-header">
+                    <span class="version-number">v1.0.0</span>
+                </div>
+                <div class="version-changes">
+                    <p>To retrieve your CLI keys, click on your external AWS Account in SSO. Once you're logged in to the console, click on the extension's icon. You should see your credentials there.</p>
+                    <p>Copy these credentials in the following file</p>
+                    <b>Linux/MacOS - ~/.aws/credentials</b>
+                    <b>Windows - C:/Users/{your_user's_name}/.aws/credentials</b>
+                </div>
+            </div>
