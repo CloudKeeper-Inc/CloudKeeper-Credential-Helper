@@ -1,134 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CloudKeeper - Credential Helper</title>
-  <style>
-    div.status {
-      width: 200px;
-    }
-    a.button {
-      -webkit-appearance: button;
-      -webkit-padding-after: 3px;
-      -webkit-padding-before: 3px;
-      -webkit-padding-end: 3px;
-      -webkit-padding-start: 3px;
-      text-decoration: none;
-      color: initial;
-      margin-top: 15px;
-    }
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 30px;
-      height: 17px;
-    }
-
-    /* Hide default HTML checkbox */
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    /* The slider */
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      -webkit-transition: 0.4s;
-      transition: 0.4s;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 13px;
-      width: 13px;
-      left: 2px;
-      bottom: 2px;
-      background-color: white;
-      -webkit-transition: 0.4s;
-      transition: 0.4s;
-    }
-
-    input:checked + .slider {
-      background-color: #2196f3;
-    }
-
-    input:focus + .slider {
-      box-shadow: 0 0 1px #2196f3;
-    }
-
-    input:checked + .slider:before {
-      -webkit-transform: translateX(13px);
-      -ms-transform: translateX(136px);
-      transform: translateX(13px);
-    }
-
-    /* Rounded sliders */
-    .slider.round {
-      border-radius: 17px;
-    }
-
-    .slider.round:before {
-      border-radius: 50%;
-    }
-
-    /* Style for copy buttons */
-    .copy-button {
-      margin-top: 5px;
-      cursor: pointer;
-      padding: 5px;
-      background-image: linear-gradient(to right, #77A1D3 0%, #79CBCA  51%, #77A1D3  100%);
-      color: black;
-      border: none;
-      border-radius: 3px;
-      transition: 0.5s;
-    }
-
-    /* Add these styles for button animation */
-    .copy-button.copied-animation {
-      background-image: linear-gradient(to right, #77A1D3 0%, #79CBCA  51%, #77A1D3  100%);
-      animation: copiedAnimation 2s;
-    }
-    .copy-button:hover {
-      background-position: right center;
-      color: white;
-      text-decoration: none;
-    }
-
-    @keyframes copiedAnimation {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudKeeper Credential Helper</title>
+    <link rel="stylesheet" href="popup.css">
 </head>
-<body>
-  <div class="status">
-    <h3>CloudKeeper - Credential Helper</h3>
-    <h4>For .aws/credentials file</h4>
-    <p id="credentialsFile"></p>
-    <!-- Button to copy .aws/credentials file content -->
-    <button class="copy-button" id="copyCredentialsButton">Copy Credentials</button>
+<body style="margin: 0; padding: 0; overflow-y: auto; max-height: 600px;">
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p>Loading credentials...</p>
+    </div>
+    
+    <div class="container" id="mainContainer" style="opacity: 0; transition: opacity 0.3s ease; max-height: 100vh; overflow-y: auto;">
+        <div class="header">
+            <div class="logo-section">
+                <h1 class="title">CloudKeeper</h1>
+                <p class="subtitle">Credential Helper</p>
+            </div>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span class="status-text">Ready</span>
+            </div>
+        </div>
 
-    <h4>For env variables</h4>
-    <p id="env_variables"></p>
-    <!-- Button to copy env variables content -->
-    <button class="copy-button" id="copyEnvVariablesButton">Copy Env Variables</button>
+        <div class="main-content">
+            <div class="info-section">
+                <p class="description">
+                    Automatically capture and format AWS credentials from SAML authentication.
+                </p>
+            </div>
 
-    <h4>For PowerShell env variables</h4>
-    <p id="pwsh_env_variables"></p>
-    <!-- Button to copy PowerShell env variables content -->
-    <button class="copy-button" id="copyPwShEnvVariablesButton">Copy PwSh Env Variables</button>
-  </div>
-  <script src="popup.js"></script>
+            <div class="credentials-section" id="credentialsSection" style="display: none;">
+                <div class="section-header">
+                    <h2>Available Credentials</h2>
+                </div>
+
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="aws-file">AWS Credentials</button>
+                        <button class="tab-btn" data-tab="bash-env">Bash/Zsh</button>
+                        <button class="tab-btn" data-tab="powershell-env">PowerShell</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div class="tab-panel active" id="aws-file">
+                            <div class="credential-block">
+                                <div class="block-header">
+                                    <h3>AWS Credentials File</h3>
+                                    <button class="copy-btn" data-target="credentialsFile" title="Copy to clipboard">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                                        </svg>
+                                        Copy
+                                    </button>
+                                </div>
+                                <div class="code-block">
+                                    <pre id="credentialsFile">No credentials available. Please authenticate with AWS SSO first.</pre>
+                                </div>
+                                <p class="helper-text">Add this to your ~/.aws/credentials file</p>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="bash-env">
+                            <div class="credential-block">
+                                <div class="block-header">
+                                    <h3>Environment Variables</h3>
+                                    <button class="copy-btn" data-target="envVariables" title="Copy to clipboard">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012 2v1"></path>
+                                        </svg>
+                                        Copy
+                                    </button>
+                                </div>
+                                <div class="code-block">
+                                    <pre id="envVariables">No credentials available. Please authenticate with AWS SSO first.</pre>
+                                </div>
+                                <p class="helper-text">Run these commands in your terminal (Bash/Zsh)</p>
+                            </div>
+                        </div>
+
+                        <div class="tab-panel" id="powershell-env">
+                            <div class="credential-block">
+                                <div class="block-header">
+                                    <h3>PowerShell Variables</h3>
+                                    <button class="copy-btn" data-target="powershellVariables" title="Copy to clipboard">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012 2v1"></path>
+                                        </svg>
+                                        Copy
+                                    </button>
+                                </div>
+                                <div class="code-block">
+                                    <pre id="powershellVariables">No credentials available. Please authenticate with AWS SSO first.</pre>
+                                </div>
+                                <p class="helper-text">Run these commands in PowerShell</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="no-credentials" id="noCredentials">
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <circle cx="12" cy="16" r="1"></circle>
+                        <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                    </svg>
+                    <h3>No Credentials Found</h3>
+                    <p>Please authenticate with AWS SSO to generate credentials.</p>
+                    <div class="instructions">
+                        <ol>
+                            <li>Navigate to your AWS SSO login page</li>
+                            <li>Complete the authentication process</li>
+                            <li>Credentials will appear here automatically</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-links">
+                <a href="#" id="changelogLink">Changelog</a>
+                <span class="separator">•</span>
+                <span class="version">v1.4.0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span class="toast-message">Copied to clipboard!</span>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
 </body>
 </html>
