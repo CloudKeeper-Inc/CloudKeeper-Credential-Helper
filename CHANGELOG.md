@@ -27,3 +27,6 @@
 
 ## [1.5.0] 2025-06-19
 - Da extension now feels bonita 💅
+
+## [1.6.0] 2025-07-13
+- Added last updated info, so you can stop playing credential archaeology.
