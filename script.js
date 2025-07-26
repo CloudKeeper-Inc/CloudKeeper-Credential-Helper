@@ -230,10 +230,17 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
 
 function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv) {
   try {
-    chrome.storage.sync.clear();
-    chrome.storage.sync.set({ credentialsFile: docContentCred });
-    chrome.storage.sync.set({ env_variables: docContentEnv });
-    chrome.storage.sync.set({ pwsh_env_variables: docContentPwShEnv });
+    // Save all credentials and timestamp in a single operation to avoid race conditions
+    const credentialsData = {
+      credentialsFile: docContentCred,
+      env_variables: docContentEnv,
+      pwsh_env_variables: docContentPwShEnv,
+      lastRefreshed: Date.now()
+    };
+    
+    chrome.storage.sync.clear(() => {
+      chrome.storage.sync.set(credentialsData);
+    });
   } catch (err) {
     console.log(err.message);
   }

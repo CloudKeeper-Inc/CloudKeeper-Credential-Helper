@@ -34,7 +34,8 @@ class CredentialHelper {
         this.credentials = {
             credentialsFile: null,
             env_variables: null,
-            pwsh_env_variables: null
+            pwsh_env_variables: null,
+            lastRefreshed: null
         };
         
         this.init();
@@ -110,12 +111,13 @@ class CredentialHelper {
         try {
             this.setLoadingState(true);
             
-            const result = await browserAPI.storage.sync.get(['credentialsFile', 'env_variables', 'pwsh_env_variables']);
+            const result = await browserAPI.storage.sync.get(['credentialsFile', 'env_variables', 'pwsh_env_variables', 'lastRefreshed']);
             
             this.credentials = {
                 credentialsFile: result.credentialsFile || null,
                 env_variables: result.env_variables || null,
-                pwsh_env_variables: result.pwsh_env_variables || null
+                pwsh_env_variables: result.pwsh_env_variables || null,
+                lastRefreshed: result.lastRefreshed || null
             };
 
             this.debouncedUpdate();
@@ -143,18 +145,24 @@ class CredentialHelper {
 
         const credentialsSection = document.getElementById('credentialsSection');
         const noCredentials = document.getElementById('noCredentials');
+        const lastRefreshedSection = document.getElementById('lastRefreshedSection');
 
         if (hasCredentials) {
             credentialsSection.style.display = 'block';
             noCredentials.style.display = 'none';
+            lastRefreshedSection.style.display = 'block';
             
             // Update credential displays
             this.updateCredentialDisplay('credentialsFile', this.credentials.credentialsFile);
             this.updateCredentialDisplay('envVariables', this.credentials.env_variables);
             this.updateCredentialDisplay('powershellVariables', this.credentials.pwsh_env_variables);
+
+            // Update last refreshed time
+            this.updateLastRefreshedDisplay();
         } else {
             credentialsSection.style.display = 'none';
             noCredentials.style.display = 'block';
+            lastRefreshedSection.style.display = 'none';
         }
     }
 
@@ -167,6 +175,48 @@ class CredentialHelper {
             } else {
                 element.textContent = 'No credentials available. Please authenticate with AWS SSO first.';
                 element.classList.add('loading');
+            }
+        }
+    }
+
+    updateLastRefreshedDisplay() {
+        const lastRefreshedElement = document.getElementById('lastRefreshedTime');
+        if (lastRefreshedElement) {
+            if (this.credentials.lastRefreshed) {
+                const lastRefreshedDate = new Date(this.credentials.lastRefreshed);
+                
+                // Debug logging
+                console.log('Raw lastRefreshed value:', this.credentials.lastRefreshed);
+                console.log('Parsed date:', lastRefreshedDate);
+                
+                // Check if the date is valid
+                if (isNaN(lastRefreshedDate.getTime())) {
+                    console.error('Invalid date:', this.credentials.lastRefreshed);
+                    lastRefreshedElement.textContent = 'Invalid date';
+                    return;
+                }
+                
+                const now = new Date();
+                const diffMs = now - lastRefreshedDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                let timeAgo;
+                if (diffMins < 1) {
+                    timeAgo = 'Just now';
+                } else if (diffMins < 60) {
+                    timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+                } else if (diffHours < 24) {
+                    timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                } else {
+                    timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                }
+
+                lastRefreshedElement.textContent = timeAgo;
+            } else {
+                console.log('No lastRefreshed timestamp found');
+                lastRefreshedElement.textContent = 'Never';
             }
         }
     }
