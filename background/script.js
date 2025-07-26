@@ -232,6 +232,7 @@ function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv) {
     browser.storage.sync.set({ credentialsFile: docContentCred });
     browser.storage.sync.set({ env_variables: docContentEnv });
     browser.storage.sync.set({ pwsh_env_variables: docContentPwShEnv });
+    browser.storage.sync.set({ lastRefreshed: Date.now() });
   } catch (err) {
     console.log(err.message);
   }
