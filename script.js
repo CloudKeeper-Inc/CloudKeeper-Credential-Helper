@@ -4,11 +4,13 @@ var FileName = "credentials";
 var DebugLogs = false;
 var RoleArns = {};
 var LF = "\n";
+
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   console.log(
     "Keeping alive -CloudKeeper - Credential Helper - Service Worker"
   );
 });
+
 chrome.runtime.onInstalled.addListener(function (details) {
   if (details.reason == "install" || details.reason == "update") {
     chrome.tabs.create({ url: "../options/changelog.html" });
@@ -81,8 +83,6 @@ function onBeforeRequestEvent(details) {
   }
 
   if (DebugLogs) {
-    // console.log("ApplySessionDuration: " + ApplySessionDuration);
-    // console.log('SessionDuration: ' + SessionDuration);
     console.log("hasRoleIndex: " + hasRoleIndex);
     console.log("roleIndex: " + roleIndex);
   }
@@ -91,12 +91,10 @@ function onBeforeRequestEvent(details) {
 }
 
 function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
-  // Pattern for Role
   var reRole = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,<]+/i;
-  // Patern for Principal (SAML Provider)
   var rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,<]+/i;
-  // Handling session duration
   var reSessionDuration = /SessionNotOnOrAfter=.*Z"/g;
+
   SessionNotOnOrAfter = samlattribute.match(reSessionDuration)[0];
   sliced = SessionNotOnOrAfter.slice(21, -1);
   max_timestamp = new Date(sliced).toISOString();
@@ -113,135 +111,102 @@ function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
   seconds -= hours * 3600;
   minutes = Math.floor(seconds / 60);
   seconds -= minutes * 60;
-
-  seconds += hours * 60 * 60;
-  seconds += minutes * 60;
+  seconds += hours * 3600 + minutes * 60;
 
   RoleArn = samlattribute.match(reRole)[0];
   PrincipalArn = samlattribute.match(rePrincipal)[0];
 
+  // Extract account ID and role name
+  const roleParts = RoleArn.match(/arn:aws:iam::(\d+):role\/(.+)/);
+  const accountId = roleParts ? roleParts[1] : "";
+  const roleName = roleParts ? roleParts[2] : "";
+
   if (DebugLogs) {
     console.log("RoleArn: " + RoleArn);
     console.log("PrincipalArn: " + PrincipalArn);
+    console.log("Extracted Account ID: " + accountId);
+    console.log("Extracted Role Name: " + roleName);
   }
-  var params = {};
+
+  var params = {
+    PrincipalArn: PrincipalArn,
+    RoleArn: RoleArn,
+    SAMLAssertion: SAMLAssertion,
+  };
+
   if (seconds > 3900) {
-    params = {
-      PrincipalArn: PrincipalArn,
-      RoleArn: RoleArn,
-      SAMLAssertion: SAMLAssertion,
-      DurationSeconds: seconds - 300,
-    };
-  } else {
-    params = {
-      PrincipalArn: PrincipalArn,
-      RoleArn: RoleArn,
-      SAMLAssertion: SAMLAssertion,
-    };
+    params.DurationSeconds = seconds - 300;
   }
 
   var sts = new AWS.STS();
   sts.assumeRoleWithSAML(params, function (err, data) {
     if (err) {
       console.log("Handling session duration mismatch between SSO and IAM");
-      new_params = {
-        PrincipalArn: PrincipalArn,
-        RoleArn: RoleArn,
-        SAMLAssertion: SAMLAssertion,
-      };
       var new_sts = new AWS.STS();
-      new_sts.assumeRoleWithSAML(new_params, function (err, data) {
+      new_sts.assumeRoleWithSAML(params, function (err, data) {
         if (err) console.log(err, err.stack);
-        else {
-          {
-            var docContentCred =
-              "[default]" +
-              LF +
-              "aws_access_key_id = " +
-              data.Credentials.AccessKeyId +
-              LF +
-              "aws_secret_access_key = " +
-              data.Credentials.SecretAccessKey +
-              LF +
-              "aws_session_token = " +
-              data.Credentials.SessionToken;
-            var docContentEnv = [
-              'export AWS_ACCESS_KEY_ID="',
-              data.Credentials.AccessKeyId,
-              '"\n',
-              'export AWS_SECRET_ACCESS_KEY="',
-              data.Credentials.SecretAccessKey,
-              '"\n',
-              'export AWS_SESSION_TOKEN="',
-              data.Credentials.SessionToken,'"'
-            ].join('');
-            var docContentPwShEnv = [
-              '$Env:AWS_ACCESS_KEY_ID="',
-              data.Credentials.AccessKeyId,
-              '"\n',
-              '$Env:AWS_SECRET_ACCESS_KEY="',
-              data.Credentials.SecretAccessKey,
-              '"\n',
-              '$Env:AWS_SESSION_TOKEN="',
-              data.Credentials.SessionToken, '"'
-            ].join('');
-
-            saveCredentials(docContentEnv, docContentCred, docContentPwShEnv);
-          }
-        }
+        else createCredentialArtifacts(data, accountId, roleName);
       });
     } else {
-      var docContentCred =
-        "[default]" +
-        LF +
-        "aws_access_key_id = " +
-        data.Credentials.AccessKeyId +
-        LF +
-        "aws_secret_access_key = " +
-        data.Credentials.SecretAccessKey +
-        LF +
-        "aws_session_token = " +
-        data.Credentials.SessionToken;
-      var docContentEnv = [
-        'export AWS_ACCESS_KEY_ID="',
-        data.Credentials.AccessKeyId,
-        '"\n',
-        'export AWS_SECRET_ACCESS_KEY="',
-        data.Credentials.SecretAccessKey,
-        '"\n',
-        'export AWS_SESSION_TOKEN="',
-        data.Credentials.SessionToken,'"'
-      ].join('');
-      var docContentPwShEnv = [
-        '$Env:AWS_ACCESS_KEY_ID="',
-        data.Credentials.AccessKeyId,
-        '"\n',
-        '$Env:AWS_SECRET_ACCESS_KEY="',
-        data.Credentials.SecretAccessKey,
-        '"\n',
-        '$Env:AWS_SESSION_TOKEN="',
-        data.Credentials.SessionToken, '"'
-      ].join('');
-
-      saveCredentials(docContentEnv, docContentCred, docContentPwShEnv);
+      createCredentialArtifacts(data, accountId, roleName);
     }
   });
 }
 
-function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv) {
+
+function createCredentialArtifacts(data, accountId, roleName) {
+  const LF = '\n'; // <-- Add this!
+
+  const docContentCred =
+    "[default]" + LF +
+    "aws_access_key_id = " + data.Credentials.AccessKeyId + LF +
+    "aws_secret_access_key = " + data.Credentials.SecretAccessKey + LF +
+    "aws_session_token = " + data.Credentials.SessionToken;
+
+  const docContentEnv = [
+    'export AWS_ACCESS_KEY_ID="', data.Credentials.AccessKeyId, '"\n',
+    'export AWS_SECRET_ACCESS_KEY="', data.Credentials.SecretAccessKey, '"\n',
+    'export AWS_SESSION_TOKEN="', data.Credentials.SessionToken, '"'
+  ].join('');
+
+  const docContentPwShEnv = [
+    '$Env:AWS_ACCESS_KEY_ID="', data.Credentials.AccessKeyId, '"\n',
+    '$Env:AWS_SECRET_ACCESS_KEY="', data.Credentials.SecretAccessKey, '"\n',
+    '$Env:AWS_SESSION_TOKEN="', data.Credentials.SessionToken, '"'
+  ].join('');
+
+  saveCredentials(docContentEnv, docContentCred, docContentPwShEnv, accountId, roleName);
+}
+
+function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv, accountId, roleName) {
   try {
-    // Save all credentials and timestamp in a single operation to avoid race conditions
-    const credentialsData = {
+    const newEntry = {
       credentialsFile: docContentCred,
       env_variables: docContentEnv,
       pwsh_env_variables: docContentPwShEnv,
-      lastRefreshed: Date.now()
+      lastRefreshed: Date.now(),
+      accountId,
+      roleName
     };
-    
-    chrome.storage.sync.clear(() => {
-      chrome.storage.sync.set(credentialsData);
+
+    chrome.storage.local.get(['credentialHistory'], (result) => {
+      const history = result.credentialHistory || [];
+
+      // Optional: avoid duplicate entries
+      const filtered = history.filter(
+        (entry) => !(entry.accountId === accountId && entry.roleName === roleName)
+      );
+
+      filtered.unshift(newEntry);
+      const trimmedHistory = filtered.slice(0, 5);
+
+      chrome.storage.local.set({
+        credentialHistory: trimmedHistory,
+        currentCredentials: newEntry // Combine into one set call
+      });
     });
+
   } catch (err) {
-    console.log(err.message);
+    console.error("Error saving credentials:", err.message);
   }
 }
