@@ -1,4 +1,5 @@
-// Credential Helper Class
+// Firefox-compatible popup.js
+
 class CredentialHelper {
     constructor() {
         this.isLoading = false;
@@ -8,39 +9,37 @@ class CredentialHelper {
             credentialsFile: null,
             env_variables: null,
             pwsh_env_variables: null,
-            lastRefreshed: null
+            lastRefreshed: null,
+            accountId: null,
+            roleName: null
         };
-        
         this.init();
     }
 
     async init() {
         if (this.isInitialized) return;
-        
+
         this.setupEventListeners();
-        
-        // Show loading overlay and hide main container initially
+
         const loadingOverlay = document.getElementById('loadingOverlay');
         const mainContainer = document.getElementById('mainContainer');
-        
+
         if (loadingOverlay) loadingOverlay.style.display = 'flex';
         if (mainContainer) mainContainer.style.opacity = '0';
-        
-        // Load credentials with a slight delay to prevent flickering
+
         setTimeout(async () => {
             await this.loadCredentials();
+            await this.loadCredentialHistory();
             this.setupTabSystem();
-            
-            // Hide loading and show main container
+
             if (loadingOverlay) loadingOverlay.style.display = 'none';
             if (mainContainer) mainContainer.style.opacity = '1';
-            
+
             this.isInitialized = true;
         }, 100);
     }
 
     setupEventListeners() {
-        // Copy button event listeners
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -49,7 +48,6 @@ class CredentialHelper {
             });
         });
 
-        // Changelog link
         const changelogLink = document.getElementById('changelogLink');
         if (changelogLink) {
             changelogLink.addEventListener('click', (e) => {
@@ -66,12 +64,10 @@ class CredentialHelper {
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const targetTab = button.getAttribute('data-tab');
-                
-                // Remove active class from all buttons and panels
+
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 tabPanels.forEach(panel => panel.classList.remove('active'));
-                
-                // Add active class to clicked button and corresponding panel
+
                 button.classList.add('active');
                 document.getElementById(targetTab).classList.add('active');
             });
@@ -79,22 +75,25 @@ class CredentialHelper {
     }
 
     async loadCredentials() {
-        if (!this.isInitialized && this.isLoading) return; // Prevent multiple loads during init
-        
+        if (!this.isInitialized && this.isLoading) return;
+    
         try {
             this.setLoadingState(true);
-            
-            const result = await browser.storage.sync.get(['credentialsFile', 'env_variables', 'pwsh_env_variables', 'lastRefreshed']);
-            
+    
+            const result = await browser.storage.local.get(['currentCredentials']);
+            const current = result.currentCredentials || {};
+    
             this.credentials = {
-                credentialsFile: result.credentialsFile || null,
-                env_variables: result.env_variables || null,
-                pwsh_env_variables: result.pwsh_env_variables || null,
-                lastRefreshed: result.lastRefreshed || null
+                credentialsFile: current.credentialsFile || '',
+                env_variables: current.env_variables || '',
+                pwsh_env_variables: current.pwsh_env_variables || '',
+                lastRefreshed: current.lastRefreshed || null,
+                accountId: current.accountId || null,
+                roleName: current.roleName || null
             };
-
+    
             this.debouncedUpdate();
-            
+    
         } catch (error) {
             console.error('Error loading credentials:', error);
             this.showErrorState();
@@ -102,6 +101,110 @@ class CredentialHelper {
             this.setLoadingState(false);
         }
     }
+    
+
+    async loadCredentialHistory() {
+        const container = document.getElementById('credentialsHistoryList');
+        if (!container) return;
+    
+        try {
+            const result = await browser.storage.local.get(['credentialHistory']);
+            const history = result.credentialHistory || [];
+    
+            if (history.length === 0) {
+                container.innerHTML = '<p style="text-align:center; font-size: 13px;">No previous credentials found.</p>';
+                return;
+            }
+    
+            container.innerHTML = '';
+    
+            history.forEach((entry, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'previous-credential-block';
+    
+                const timestamp = new Date(entry.lastRefreshed).toLocaleString();
+    
+                wrapper.innerHTML = `
+                    <div class="history-header">
+                      <div>
+                        <strong>${index + 1}. Account:</strong> ${entry.accountId},
+                        <strong>Role:</strong> ${entry.roleName}
+                      </div>
+                      <div><em>Refreshed: ${timestamp}</em></div>
+                    </div>
+                    <div class="tab-container small-tabs">
+                      <div class="tab-buttons">
+                        <button class="tab-btn active" data-tab="aws-${index}">AWS Credentials</button>
+                        <button class="tab-btn" data-tab="bash-${index}">Bash/Zsh</button>
+                        <button class="tab-btn" data-tab="powershell-${index}">PowerShell</button>
+                      </div>
+                      <div class="tab-content">
+                        <div class="tab-panel active" id="aws-${index}">
+                          <div class="credential-block">
+                            <div class="block-header">
+                              <h3>AWS Credentials File</h3>
+                              <button class="copy-btn">Copy</button>
+                            </div>
+                            <pre>${entry.credentialsFile || 'N/A'}</pre>
+                          </div>
+                        </div>
+                        <div class="tab-panel" id="bash-${index}">
+                          <div class="credential-block">
+                            <div class="block-header">
+                              <h3>Bash/Zsh Variables</h3>
+                              <button class="copy-btn">Copy</button>
+                            </div>
+                            <pre>${entry.env_variables || 'N/A'}</pre>
+                          </div>
+                        </div>
+                        <div class="tab-panel" id="powershell-${index}">
+                          <div class="credential-block">
+                            <div class="block-header">
+                              <h3>PowerShell Variables</h3>
+                              <button class="copy-btn">Copy</button>
+                            </div>
+                            <pre>${entry.pwsh_env_variables || 'N/A'}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                `;
+    
+                container.appendChild(wrapper);
+    
+                // Setup copy buttons
+                wrapper.querySelectorAll('.copy-btn').forEach(btn => {
+                    const pre = btn.parentElement.nextElementSibling;
+                    btn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(pre.textContent.trim());
+                        this.showToast('Copied to clipboard!');
+                    });
+                });
+    
+                // Setup tab toggle logic for this block
+                const tabButtons = wrapper.querySelectorAll('.tab-btn');
+                const tabPanels = wrapper.querySelectorAll('.tab-panel');
+    
+                tabButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tabId = btn.getAttribute('data-tab');
+    
+                        tabButtons.forEach(b => b.classList.remove('active'));
+                        tabPanels.forEach(p => p.classList.remove('active'));
+    
+                        btn.classList.add('active');
+                        wrapper.querySelector(`#${tabId}`).classList.add('active');
+                    });
+                });
+            });
+        } catch (error) {
+            console.error('Error loading credential history:', error);
+        }
+    }
+    
+    
+    
+    
 
     debouncedUpdate() {
         clearTimeout(this.updateTimeout);
@@ -112,9 +215,9 @@ class CredentialHelper {
     }
 
     updateUI() {
-        const hasCredentials = this.credentials.credentialsFile || 
-                              this.credentials.env_variables || 
-                              this.credentials.pwsh_env_variables;
+        const hasCredentials = !!(this.credentials.credentialsFile?.trim() ||
+        this.credentials.env_variables?.trim() ||
+        this.credentials.pwsh_env_variables?.trim());
 
         const credentialsSection = document.getElementById('credentialsSection');
         const noCredentials = document.getElementById('noCredentials');
@@ -124,14 +227,25 @@ class CredentialHelper {
             credentialsSection.style.display = 'block';
             noCredentials.style.display = 'none';
             lastRefreshedSection.style.display = 'block';
-            
-            // Update credential displays
+
             this.updateCredentialDisplay('credentialsFile', this.credentials.credentialsFile);
             this.updateCredentialDisplay('envVariables', this.credentials.env_variables);
             this.updateCredentialDisplay('powershellVariables', this.credentials.pwsh_env_variables);
-            
-            // Update last refreshed time
             this.updateLastRefreshedDisplay();
+
+            const identitySection = document.getElementById('identitySection');
+            const accountIdEl = document.getElementById('accountId');
+            const roleNameEl = document.getElementById('roleName');
+            if (identitySection && accountIdEl && roleNameEl) {
+                if (this.credentials.accountId && this.credentials.roleName) {
+                    accountIdEl.textContent = this.credentials.accountId;
+                    roleNameEl.textContent = this.credentials.roleName;
+                    identitySection.style.display = 'block';
+                } else {
+                    identitySection.style.display = 'none';
+                }
+            }
+
         } else {
             credentialsSection.style.display = 'none';
             noCredentials.style.display = 'block';
@@ -154,28 +268,36 @@ class CredentialHelper {
 
     updateLastRefreshedDisplay() {
         const lastRefreshedElement = document.getElementById('lastRefreshedTime');
-        if (lastRefreshedElement && this.credentials.lastRefreshed) {
-            const lastRefreshedDate = new Date(this.credentials.lastRefreshed);
-            const now = new Date();
-            const diffMs = now - lastRefreshedDate;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
+        if (lastRefreshedElement) {
+            if (this.credentials.lastRefreshed) {
+                const lastRefreshedDate = new Date(this.credentials.lastRefreshed);
 
-            let timeAgo;
-            if (diffMins < 1) {
-                timeAgo = 'Just now';
-            } else if (diffMins < 60) {
-                timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-            } else if (diffHours < 24) {
-                timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                if (isNaN(lastRefreshedDate.getTime())) {
+                    lastRefreshedElement.textContent = 'Invalid date';
+                    return;
+                }
+
+                const now = new Date();
+                const diffMs = now - lastRefreshedDate;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                let timeAgo;
+                if (diffMins < 1) {
+                    timeAgo = 'Just now';
+                } else if (diffMins < 60) {
+                    timeAgo = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+                } else if (diffHours < 24) {
+                    timeAgo = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                } else {
+                    timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                }
+
+                lastRefreshedElement.textContent = timeAgo;
             } else {
-                timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                lastRefreshedElement.textContent = 'Never';
             }
-
-            lastRefreshedElement.textContent = timeAgo;
-        } else if (lastRefreshedElement) {
-            lastRefreshedElement.textContent = 'Never';
         }
     }
 
@@ -183,10 +305,10 @@ class CredentialHelper {
         const statusIndicator = document.getElementById('statusIndicator');
         const statusDot = statusIndicator.querySelector('.status-dot');
         const statusText = statusIndicator.querySelector('.status-text');
-        
-        const hasCredentials = this.credentials.credentialsFile || 
-                              this.credentials.env_variables || 
-                              this.credentials.pwsh_env_variables;
+
+        const hasCredentials = this.credentials.credentialsFile ||
+            this.credentials.env_variables ||
+            this.credentials.pwsh_env_variables;
 
         if (hasCredentials) {
             statusDot.style.background = '#2ecc71';
@@ -200,7 +322,7 @@ class CredentialHelper {
     setLoadingState(loading) {
         this.isLoading = loading;
         const codeBlocks = document.querySelectorAll('.code-block pre');
-        
+
         if (loading) {
             codeBlocks.forEach(block => {
                 block.classList.add('loading');
@@ -215,7 +337,7 @@ class CredentialHelper {
             block.classList.remove('loading');
             block.textContent = 'Error loading credentials. Please try refreshing.';
         });
-        
+
         const statusDot = document.querySelector('.status-dot');
         const statusText = document.querySelector('.status-text');
         statusDot.style.background = '#e74c3c';
@@ -230,15 +352,8 @@ class CredentialHelper {
         }
 
         try {
-            // Create a temporary textarea element for copying
-            const textarea = document.createElement('textarea');
-            textarea.value = element.textContent;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
+            await navigator.clipboard.writeText(element.textContent);
 
-            // Update button state
             const originalContent = button.innerHTML;
             button.innerHTML = `
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -248,10 +363,8 @@ class CredentialHelper {
             `;
             button.style.background = '#2ecc71';
 
-            // Show toast notification
             this.showToast('Copied to clipboard!');
 
-            // Reset button after 2 seconds
             setTimeout(() => {
                 button.innerHTML = originalContent;
                 button.style.background = '#3498db';
@@ -266,39 +379,33 @@ class CredentialHelper {
     showToast(message, type = 'success') {
         const toast = document.getElementById('toast');
         const toastMessage = toast.querySelector('.toast-message');
-        
+
         toastMessage.textContent = message;
-        
-        if (type === 'error') {
-            toast.style.background = '#e74c3c';
-        } else {
-            toast.style.background = '#2ecc71';
-        }
-        
+
+        toast.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
         toast.classList.add('show');
-        
+
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
     }
 }
 
-// Global instance to prevent multiple initializations
 let credentialHelperInstance = null;
 
-// Initialize the credential helper when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     if (!credentialHelperInstance) {
-        credentialHelperInstance = new CredentialHelper();
+        credentialHelperInstance = new CredentialHelper(); // `init()` handles history now
     }
 });
 
-// Listen for storage changes to update UI in real-time
-if (typeof browser !== 'undefined' && browser.storage) {
-    browser.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === 'sync' && credentialHelperInstance && credentialHelperInstance.isInitialized) {
-            // Use the existing instance instead of creating a new one
+browser.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && credentialHelperInstance?.isInitialized) {
+        if (changes.currentCredentials) {
             credentialHelperInstance.loadCredentials();
         }
-    });
-}
+        if (changes.credentialHistory) {
+            credentialHelperInstance.loadCredentialHistory();
+        }
+    }
+});

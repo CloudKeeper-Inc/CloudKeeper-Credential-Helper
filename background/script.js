@@ -1,239 +1,169 @@
-var FileName = "credentials";
-var DebugLogs = true;
-var RoleArns = {};
-var LF = "\n";
-browser.webNavigation.onBeforeNavigate.addListener((details) => {
-  console.log(
-    "Keeping alive -CloudKeeper - Credential Helper - Service Worker"
-  );
+// importScripts("../lib/aws-sdk.min.js");
+
+const DebugLogs = false;
+let LF = "\n";
+
+browser.webNavigation.onBeforeNavigate.addListener(() => {
+  console.log("CloudKeeper - Credential Helper - Service Worker active");
 });
-browser.runtime.onInstalled.addListener(function (details) {
-  if (details.reason == "install" || details.reason == "update") {
+
+browser.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install" || details.reason === "update") {
     browser.tabs.create({ url: "../options/changelog.html" });
   }
 });
 
 function addOnBeforeRequestEventListener() {
   if (DebugLogs) console.log("DEBUG: Extension is activated");
+
   if (browser.webRequest.onBeforeRequest.hasListener(onBeforeRequestEvent)) {
-    console.log(
-      "ERROR: onBeforeRequest EventListener could not be added, because onBeforeRequest already has an EventListener."
-    );
+    console.warn("Listener already attached");
   } else {
     browser.webRequest.onBeforeRequest.addListener(
       onBeforeRequestEvent,
       { urls: ["https://signin.aws.amazon.com/saml"] },
       ["requestBody"]
     );
-    if (DebugLogs) console.log("DEBUG: onBeforeRequest Listener added");
+    if (DebugLogs) console.log("DEBUG: onBeforeRequest listener added");
   }
 }
 addOnBeforeRequestEventListener();
 
 function onBeforeRequestEvent(details) {
-  if (DebugLogs) console.log("DEBUG: onBeforeRequest event hit!");
-  var samlXmlDoc = "";
-  var formDataPayload = undefined;
+  if (DebugLogs) console.log("DEBUG: onBeforeRequest triggered");
+
+  let samlXmlDoc = "";
+  let formDataPayload;
+
   if (details.requestBody.formData) {
     samlXmlDoc = decodeURIComponent(
       unescape(atob(details.requestBody.formData.SAMLResponse[0]))
     );
   } else if (details.requestBody.raw) {
-    var combined = new ArrayBuffer(0);
-    details.requestBody.raw.forEach(function (element) {
-      var tmp = new Uint8Array(combined.byteLength + element.bytes.byteLength);
+    let combined = new ArrayBuffer(0);
+    details.requestBody.raw.forEach((element) => {
+      let tmp = new Uint8Array(combined.byteLength + element.bytes.byteLength);
       tmp.set(new Uint8Array(combined), 0);
       tmp.set(new Uint8Array(element.bytes), combined.byteLength);
       combined = tmp.buffer;
     });
-    var combinedView = new DataView(combined);
-    var decoder = new TextDecoder("utf-8");
-    formDataPayload = new URLSearchParams(decoder.decode(combinedView));
+    const decoder = new TextDecoder("utf-8");
+    formDataPayload = new URLSearchParams(decoder.decode(new DataView(combined)));
     samlXmlDoc = decodeURIComponent(
       unescape(atob(formDataPayload.get("SAMLResponse")))
     );
   }
-  if (DebugLogs) {
-    console.log("DEBUG: samlXmlDoc:");
-    console.log(samlXmlDoc);
-  }
-  var PrincipalArn = "";
-  var RoleArn = "";
-  var SAMLAssertion = undefined;
-  var hasRoleIndex = false;
-  var roleIndex = undefined;
-  if (details.requestBody.formData) {
-    SAMLAssertion = details.requestBody.formData.SAMLResponse[0];
-    if ("roleIndex" in details.requestBody.formData) {
-      hasRoleIndex = true;
-      roleIndex = details.requestBody.formData.roleIndex[0];
-    }
-  } else if (formDataPayload) {
-    SAMLAssertion = formDataPayload.get("SAMLResponse");
-    roleIndex = formDataPayload.get("roleIndex");
-    hasRoleIndex = roleIndex != undefined;
-  }
 
-  if (navigator.userAgent.indexOf("Windows") !== -1) {
-    LF = "\r\n";
-  }
+  const SAMLAssertion = formDataPayload
+    ? formDataPayload.get("SAMLResponse")
+    : details.requestBody.formData?.SAMLResponse[0];
 
-  if (DebugLogs) {
-    // console.log("ApplySessionDuration: " + ApplySessionDuration);
-    // console.log('SessionDuration: ' + SessionDuration);
-    console.log("hasRoleIndex: " + hasRoleIndex);
-    console.log("roleIndex: " + roleIndex);
-  }
+  if (!SAMLAssertion) return;
 
-  extractPrincipalPlusRoleAndAssumeRole(samlXmlDoc, SAMLAssertion);
+  extractAndAssumeRole(samlXmlDoc, SAMLAssertion);
 }
 
-function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
-  // Pattern for Role
-  var reRole = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,<]+/i;
-  // Patern for Principal (SAML Provider)
-  var rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,<]+/i;
-  // Handling session duration
-  var reSessionDuration = /SessionNotOnOrAfter=.*Z"/g;
-  SessionNotOnOrAfter = samlattribute.match(reSessionDuration)[0];
-  sliced = SessionNotOnOrAfter.slice(21, -1);
-  max_timestamp = new Date(sliced).toISOString();
-  current_timestamp = new Date().toISOString();
-  console.log(current_timestamp);
-  console.log(max_timestamp);
+function extractAndAssumeRole(samlattribute, SAMLAssertion) {
+  const reRole = /arn:aws:iam::(\d+):role\/([^,<]+)/i;
+  const rePrincipal = /arn:aws:iam::\d+:saml-provider\/[^,<]+/i;
+  const reSessionDuration = /SessionNotOnOrAfter="([^"]+)"/;
 
-  const start = new Date(current_timestamp).getTime();
-  const end = new Date(max_timestamp).getTime();
-  let seconds = Math.round(Math.abs(end - start) / 1000);
-  const days = Math.floor(seconds / 86400);
-  seconds -= days * 86400;
-  const hours = Math.floor(seconds / 3600);
-  seconds -= hours * 3600;
-  minutes = Math.floor(seconds / 60);
-  seconds -= minutes * 60;
+  const RoleArnMatch = samlattribute.match(reRole);
+  const PrincipalArn = samlattribute.match(rePrincipal)?.[0];
+  const SessionEnd = samlattribute.match(reSessionDuration)?.[1];
 
-  seconds += hours * 60 * 60;
-  seconds += minutes * 60;
-
-  RoleArn = samlattribute.match(reRole)[0];
-  PrincipalArn = samlattribute.match(rePrincipal)[0];
-
-  if (DebugLogs) {
-    console.log("RoleArn: " + RoleArn);
-    console.log("PrincipalArn: " + PrincipalArn);
-  }
-  var params = {};
-  if (seconds > 3900) {
-    params = {
-      PrincipalArn: PrincipalArn,
-      RoleArn: RoleArn,
-      SAMLAssertion: SAMLAssertion,
-      DurationSeconds: seconds - 300,
-    };
-  } else {
-    params = {
-      PrincipalArn: PrincipalArn,
-      RoleArn: RoleArn,
-      SAMLAssertion: SAMLAssertion,
-    };
+  if (!RoleArnMatch || !PrincipalArn || !SessionEnd) {
+    console.warn("SAML parsing failed");
+    return;
   }
 
-  var sts = new AWS.STS();
+  const RoleArn = RoleArnMatch[0];
+  const accountId = RoleArnMatch[1];
+  const roleName = RoleArnMatch[2];
+
+  const start = new Date().getTime();
+  const end = new Date(SessionEnd).getTime();
+  let seconds = Math.floor(Math.abs(end - start) / 1000);
+  seconds = seconds > 3900 ? seconds - 300 : seconds;
+
+  const params = {
+    PrincipalArn: PrincipalArn,
+    RoleArn: RoleArn,
+    SAMLAssertion: SAMLAssertion,
+    ...(seconds > 0 ? { DurationSeconds: seconds } : {})
+  };
+
+  const sts = new AWS.STS();
   sts.assumeRoleWithSAML(params, function (err, data) {
     if (err) {
-      console.log("Handling session duration mismatch between SSO and IAM");
-      new_params = {
-        PrincipalArn: PrincipalArn,
-        RoleArn: RoleArn,
-        SAMLAssertion: SAMLAssertion,
-      };
-      var new_sts = new AWS.STS();
-      new_sts.assumeRoleWithSAML(new_params, function (err, data) {
-        if (err) console.log(err, err.stack);
-        else {
-          {
-            var docContentCred =
-              "[default]" +
-              LF +
-              "aws_access_key_id = " +
-              data.Credentials.AccessKeyId +
-              LF +
-              "aws_secret_access_key = " +
-              data.Credentials.SecretAccessKey +
-              LF +
-              "aws_session_token = " +
-              data.Credentials.SessionToken;
-            var docContentEnv = [
-              'export AWS_ACCESS_KEY_ID="',
-              data.Credentials.AccessKeyId,
-              '"\n',
-              'export AWS_SECRET_ACCESS_KEY="',
-              data.Credentials.SecretAccessKey,
-              '"\n',
-              'export AWS_SESSION_TOKEN="',
-              data.Credentials.SessionToken,'"'
-            ].join('');
-            var docContentPwShEnv = [
-              '$Env:AWS_ACCESS_KEY_ID="',
-              data.Credentials.AccessKeyId,
-              '"\n',
-              '$Env:AWS_SECRET_ACCESS_KEY="',
-              data.Credentials.SecretAccessKey,
-              '"\n',
-              '$Env:AWS_SESSION_TOKEN="',
-              data.Credentials.SessionToken, '"'
-            ].join('');
-
-            saveCredentials(docContentEnv, docContentCred, docContentPwShEnv);
-          }
-        }
-      });
+      console.error("STS Error:", err);
     } else {
-      var docContentCred =
-        "[default]" +
-        LF +
-        "aws_access_key_id = " +
-        data.Credentials.AccessKeyId +
-        LF +
-        "aws_secret_access_key = " +
-        data.Credentials.SecretAccessKey +
-        LF +
-        "aws_session_token = " +
-        data.Credentials.SessionToken;
-      var docContentEnv = [
-        'export AWS_ACCESS_KEY_ID="',
-        data.Credentials.AccessKeyId,
-        '"\n',
-        'export AWS_SECRET_ACCESS_KEY="',
-        data.Credentials.SecretAccessKey,
-        '"\n',
-        'export AWS_SESSION_TOKEN="',
-        data.Credentials.SessionToken,'"'
-      ].join('');
-      var docContentPwShEnv = [
-        '$Env:AWS_ACCESS_KEY_ID="',
-        data.Credentials.AccessKeyId,
-        '"\n',
-        '$Env:AWS_SECRET_ACCESS_KEY="',
-        data.Credentials.SecretAccessKey,
-        '"\n',
-        '$Env:AWS_SESSION_TOKEN="',
-        data.Credentials.SessionToken, '"'
-      ].join('');
-
-      saveCredentials(docContentEnv, docContentCred, docContentPwShEnv);
+      createCredentialArtifacts(data, accountId, roleName);
     }
   });
 }
 
-function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv) {
+function createCredentialArtifacts(data, accountId, roleName) {
+  const docContentCred = [
+    "[default]",
+    "aws_access_key_id = " + data.Credentials.AccessKeyId,
+    "aws_secret_access_key = " + data.Credentials.SecretAccessKey,
+    "aws_session_token = " + data.Credentials.SessionToken
+  ].join(LF);
+
+  const docContentEnv = [
+    `export AWS_ACCESS_KEY_ID="${data.Credentials.AccessKeyId}"`,
+    `export AWS_SECRET_ACCESS_KEY="${data.Credentials.SecretAccessKey}"`,
+    `export AWS_SESSION_TOKEN="${data.Credentials.SessionToken}"`
+  ].join(LF);
+
+  const docContentPwShEnv = [
+    `$Env:AWS_ACCESS_KEY_ID="${data.Credentials.AccessKeyId}"`,
+    `$Env:AWS_SECRET_ACCESS_KEY="${data.Credentials.SecretAccessKey}"`,
+    `$Env:AWS_SESSION_TOKEN="${data.Credentials.SessionToken}"`
+  ].join(LF);
+
+  saveCredentials(docContentEnv, docContentCred, docContentPwShEnv, accountId, roleName);
+}
+
+async function saveCredentials(docContentEnv, docContentCred, docContentPwShEnv, accountId, roleName) {
   try {
-    browser.storage.sync.clear();
-    browser.storage.sync.set({ credentialsFile: docContentCred });
-    browser.storage.sync.set({ env_variables: docContentEnv });
-    browser.storage.sync.set({ pwsh_env_variables: docContentPwShEnv });
-    browser.storage.sync.set({ lastRefreshed: Date.now() });
+    const newEntry = {
+      credentialsFile: docContentCred,
+      env_variables: docContentEnv,
+      pwsh_env_variables: docContentPwShEnv,
+      lastRefreshed: Date.now(),
+      accountId,
+      roleName
+    };
+
+    const result = await browser.storage.local.get(['credentialHistory']);
+    const history = result.credentialHistory || [];
+
+    // Only remove exact duplicates (all fields match)
+    const updated = [newEntry, ...history.filter(entry =>
+      !(
+        entry.accountId === newEntry.accountId &&
+        entry.roleName === newEntry.roleName &&
+        entry.credentialsFile === newEntry.credentialsFile &&
+        entry.env_variables === newEntry.env_variables &&
+        entry.pwsh_env_variables === newEntry.pwsh_env_variables
+      )
+    )];
+
+    const trimmed = updated.slice(0, 5); // Keep latest 5
+
+    await browser.storage.local.set({
+      credentialHistory: trimmed,
+      currentCredentials: newEntry
+    });
+
+    if (DebugLogs) {
+      console.log("Saved credential:", newEntry);
+      console.log("Updated history:", trimmed);
+    }
+
   } catch (err) {
-    console.log(err.message);
+    console.error("Error saving credentials:", err.message);
   }
 }
