@@ -86,21 +86,43 @@ function extractAndAssumeRole(samlattribute, SAMLAssertion) {
   let seconds = Math.floor(Math.abs(end - start) / 1000);
   seconds = seconds > 3900 ? seconds - 300 : seconds;
 
-  const params = {
+  const baseParams = {
     PrincipalArn: PrincipalArn,
     RoleArn: RoleArn,
-    SAMLAssertion: SAMLAssertion,
-    ...(seconds > 0 ? { DurationSeconds: seconds } : {})
+    SAMLAssertion: SAMLAssertion
   };
 
   const sts = new AWS.STS();
-  sts.assumeRoleWithSAML(params, function (err, data) {
-    if (err) {
-      console.error("STS Error:", err);
-    } else {
-      createCredentialArtifacts(data, accountId, roleName);
-    }
-  });
+
+  function assumeWithDuration(duration) {
+    const params = { ...baseParams, DurationSeconds: duration };
+    sts.assumeRoleWithSAML(params, function (err, data) {
+      if (err) {
+        console.error("STS Error:", err);
+        if (
+          err.code === "ValidationError" &&
+          err.message.includes("DurationSeconds")
+        ) {
+          console.warn("Retrying with 3600 seconds due to max session restriction");
+          // Retry with max allowed default
+          sts.assumeRoleWithSAML(
+            { ...baseParams, DurationSeconds: 3600 },
+            function (err2, data2) {
+              if (err2) {
+                console.error("Retry failed:", err2);
+              } else {
+                createCredentialArtifacts(data2, accountId, roleName);
+              }
+            }
+          );
+        }
+      } else {
+        createCredentialArtifacts(data, accountId, roleName);
+      }
+    });
+  }
+
+  assumeWithDuration(seconds);
 }
 
 function createCredentialArtifacts(data, accountId, roleName) {
