@@ -30,3 +30,4 @@
 
 ## [1.6.0] 2025-07-13
 - Added last updated info, so you can stop playing credential archaeology.
+- Added multi session support to store last 5 credentials
