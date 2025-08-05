@@ -16,6 +16,8 @@
   "background": {
     "service_worker": "script.js"
   },
-  "permissions": ["webRequest", "storage", "webNavigation"],
+  "permissions": ["webRequest", "storage", "webNavigation" , "scripting"],
   "host_permissions": ["https://signin.aws.amazon.com/saml"]
 }
+
+

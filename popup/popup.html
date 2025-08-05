@@ -11,7 +11,7 @@
         <div class="loading-spinner"></div>
         <p>Loading credentials...</p>
     </div>
-    
+
     <div class="container" id="mainContainer" style="opacity: 0; transition: opacity 0.3s ease; max-height: 100vh; overflow-y: auto;">
         <div class="header">
             <div class="logo-section">
@@ -35,6 +35,14 @@
                 <p class="description">
                     Automatically capture and format AWS credentials from SAML authentication.
                 </p>
+            </div>
+
+            <!-- New identity section -->
+            <div class="identity-section" id="identitySection" style="display: none; margin-bottom: 12px;">
+                <div class="identity-info">
+                    <span><strong>Account ID:</strong> <span id="accountId">-</span></span><br>
+                    <span><strong>Role Name:</strong> <span id="roleName">-</span></span>
+                </div>
             </div>
 
             <div class="credentials-section" id="credentialsSection" style="display: none;">
@@ -109,6 +117,15 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Credential History Section -->
+            <div class="credentials-history" style="margin-top: 20px;">
+                <h2 style="font-size: 16px; color: #2c3e50; margin-bottom: 12px;">Previous Credentials (Last 5)</h2>
+                <div id="credentialsHistoryList">
+                    <!-- Populated dynamically from popup.js -->
+                </div>
+            </div>
+
 
             <div class="no-credentials" id="noCredentials">
                 <div class="empty-state">

@@ -13,6 +13,14 @@ const browserAPI = {
                     chrome.storage.onChanged.addListener(callback);
                 }
             }
+        },
+        local: {
+            get: (keys) => new Promise((resolve) => {
+                chrome.storage.local.get(keys, resolve);
+            }),
+            set: (items) => new Promise((resolve) => {
+                chrome.storage.local.set(items, resolve);
+            })
         }
     },
     tabs: {
@@ -25,6 +33,7 @@ const browserAPI = {
     }
 };
 
+
 // Credential Helper Class
 class CredentialHelper {
     constructor() {
@@ -35,39 +44,37 @@ class CredentialHelper {
             credentialsFile: null,
             env_variables: null,
             pwsh_env_variables: null,
-            lastRefreshed: null
+            lastRefreshed: null,
+            accountId: null,
+            roleName: null
         };
-        
+
         this.init();
     }
 
     async init() {
         if (this.isInitialized) return;
-        
+
         this.setupEventListeners();
-        
-        // Show loading overlay and hide main container initially
+
         const loadingOverlay = document.getElementById('loadingOverlay');
         const mainContainer = document.getElementById('mainContainer');
-        
+
         if (loadingOverlay) loadingOverlay.style.display = 'flex';
         if (mainContainer) mainContainer.style.opacity = '0';
-        
-        // Load credentials with a slight delay to prevent flickering
+
         setTimeout(async () => {
             await this.loadCredentials();
             this.setupTabSystem();
-            
-            // Hide loading and show main container
+
             if (loadingOverlay) loadingOverlay.style.display = 'none';
             if (mainContainer) mainContainer.style.opacity = '1';
-            
+
             this.isInitialized = true;
         }, 100);
     }
 
     setupEventListeners() {
-        // Copy button event listeners
         document.querySelectorAll('.copy-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -76,7 +83,6 @@ class CredentialHelper {
             });
         });
 
-        // Changelog link
         const changelogLink = document.getElementById('changelogLink');
         if (changelogLink) {
             changelogLink.addEventListener('click', (e) => {
@@ -93,12 +99,10 @@ class CredentialHelper {
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const targetTab = button.getAttribute('data-tab');
-                
-                // Remove active class from all buttons and panels
+
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 tabPanels.forEach(panel => panel.classList.remove('active'));
-                
-                // Add active class to clicked button and corresponding panel
+
                 button.classList.add('active');
                 document.getElementById(targetTab).classList.add('active');
             });
@@ -106,22 +110,25 @@ class CredentialHelper {
     }
 
     async loadCredentials() {
-        if (!this.isInitialized && this.isLoading) return; // Prevent multiple loads during init
-        
+        if (!this.isInitialized && this.isLoading) return;
+    
         try {
             this.setLoadingState(true);
-            
-            const result = await browserAPI.storage.sync.get(['credentialsFile', 'env_variables', 'pwsh_env_variables', 'lastRefreshed']);
-            
+    
+            const result = await browserAPI.storage.local.get(['currentCredentials']);
+            const current = result.currentCredentials || {};
+    
             this.credentials = {
-                credentialsFile: result.credentialsFile || null,
-                env_variables: result.env_variables || null,
-                pwsh_env_variables: result.pwsh_env_variables || null,
-                lastRefreshed: result.lastRefreshed || null
+                credentialsFile: current.credentialsFile || null,
+                env_variables: current.env_variables || null,
+                pwsh_env_variables: current.pwsh_env_variables || null,
+                lastRefreshed: current.lastRefreshed || null,
+                accountId: current.accountId || null,
+                roleName: current.roleName || null
             };
-
+    
             this.debouncedUpdate();
-            
+    
         } catch (error) {
             console.error('Error loading credentials:', error);
             this.showErrorState();
@@ -129,7 +136,6 @@ class CredentialHelper {
             this.setLoadingState(false);
         }
     }
-
     debouncedUpdate() {
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
@@ -139,9 +145,9 @@ class CredentialHelper {
     }
 
     updateUI() {
-        const hasCredentials = this.credentials.credentialsFile || 
-                              this.credentials.env_variables || 
-                              this.credentials.pwsh_env_variables;
+        const hasCredentials = this.credentials.credentialsFile ||
+            this.credentials.env_variables ||
+            this.credentials.pwsh_env_variables;
 
         const credentialsSection = document.getElementById('credentialsSection');
         const noCredentials = document.getElementById('noCredentials');
@@ -151,14 +157,25 @@ class CredentialHelper {
             credentialsSection.style.display = 'block';
             noCredentials.style.display = 'none';
             lastRefreshedSection.style.display = 'block';
-            
-            // Update credential displays
+
             this.updateCredentialDisplay('credentialsFile', this.credentials.credentialsFile);
             this.updateCredentialDisplay('envVariables', this.credentials.env_variables);
             this.updateCredentialDisplay('powershellVariables', this.credentials.pwsh_env_variables);
-
-            // Update last refreshed time
             this.updateLastRefreshedDisplay();
+
+            const identitySection = document.getElementById('identitySection');
+            const accountIdEl = document.getElementById('accountId');
+            const roleNameEl = document.getElementById('roleName');
+            if (identitySection && accountIdEl && roleNameEl) {
+                if (this.credentials.accountId && this.credentials.roleName) {
+                    accountIdEl.textContent = this.credentials.accountId;
+                    roleNameEl.textContent = this.credentials.roleName;
+                    identitySection.style.display = 'block';
+                } else {
+                    identitySection.style.display = 'none';
+                }
+            }
+
         } else {
             credentialsSection.style.display = 'none';
             noCredentials.style.display = 'block';
@@ -184,18 +201,12 @@ class CredentialHelper {
         if (lastRefreshedElement) {
             if (this.credentials.lastRefreshed) {
                 const lastRefreshedDate = new Date(this.credentials.lastRefreshed);
-                
-                // Debug logging
-                console.log('Raw lastRefreshed value:', this.credentials.lastRefreshed);
-                console.log('Parsed date:', lastRefreshedDate);
-                
-                // Check if the date is valid
+
                 if (isNaN(lastRefreshedDate.getTime())) {
-                    console.error('Invalid date:', this.credentials.lastRefreshed);
                     lastRefreshedElement.textContent = 'Invalid date';
                     return;
                 }
-                
+
                 const now = new Date();
                 const diffMs = now - lastRefreshedDate;
                 const diffMins = Math.floor(diffMs / 60000);
@@ -215,7 +226,6 @@ class CredentialHelper {
 
                 lastRefreshedElement.textContent = timeAgo;
             } else {
-                console.log('No lastRefreshed timestamp found');
                 lastRefreshedElement.textContent = 'Never';
             }
         }
@@ -225,10 +235,10 @@ class CredentialHelper {
         const statusIndicator = document.getElementById('statusIndicator');
         const statusDot = statusIndicator.querySelector('.status-dot');
         const statusText = statusIndicator.querySelector('.status-text');
-        
-        const hasCredentials = this.credentials.credentialsFile || 
-                              this.credentials.env_variables || 
-                              this.credentials.pwsh_env_variables;
+
+        const hasCredentials = this.credentials.credentialsFile ||
+            this.credentials.env_variables ||
+            this.credentials.pwsh_env_variables;
 
         if (hasCredentials) {
             statusDot.style.background = '#2ecc71';
@@ -242,7 +252,7 @@ class CredentialHelper {
     setLoadingState(loading) {
         this.isLoading = loading;
         const codeBlocks = document.querySelectorAll('.code-block pre');
-        
+
         if (loading) {
             codeBlocks.forEach(block => {
                 block.classList.add('loading');
@@ -257,7 +267,7 @@ class CredentialHelper {
             block.classList.remove('loading');
             block.textContent = 'Error loading credentials. Please try refreshing.';
         });
-        
+
         const statusDot = document.querySelector('.status-dot');
         const statusText = document.querySelector('.status-text');
         statusDot.style.background = '#e74c3c';
@@ -272,11 +282,9 @@ class CredentialHelper {
         }
 
         try {
-            // Use the modern Clipboard API if available, fallback to execCommand
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(element.textContent);
             } else {
-                // Fallback for older browsers
                 const textarea = document.createElement('textarea');
                 textarea.value = element.textContent;
                 document.body.appendChild(textarea);
@@ -285,7 +293,6 @@ class CredentialHelper {
                 document.body.removeChild(textarea);
             }
 
-            // Update button state
             const originalContent = button.innerHTML;
             button.innerHTML = `
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -295,10 +302,8 @@ class CredentialHelper {
             `;
             button.style.background = '#2ecc71';
 
-            // Show toast notification
             this.showToast('Copied to clipboard!');
 
-            // Reset button after 2 seconds
             setTimeout(() => {
                 button.innerHTML = originalContent;
                 button.style.background = '#3498db';
@@ -313,37 +318,141 @@ class CredentialHelper {
     showToast(message, type = 'success') {
         const toast = document.getElementById('toast');
         const toastMessage = toast.querySelector('.toast-message');
-        
+
         toastMessage.textContent = message;
-        
-        if (type === 'error') {
-            toast.style.background = '#e74c3c';
-        } else {
-            toast.style.background = '#2ecc71';
-        }
-        
+
+        toast.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
         toast.classList.add('show');
-        
+
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
     }
-}
 
-// Global instance to prevent multiple initializations
+    loadCredentialHistory() {
+        const container = document.getElementById('credentialsHistoryList');
+        if (!container) return;
+    
+        chrome.storage.local.get(['credentialHistory'], (result) => {
+            const history = result.credentialHistory || [];
+    
+            if (history.length === 0) {
+                container.innerHTML = '<p style="text-align:center; font-size: 13px;">No previous credentials found.</p>';
+                return;
+            }
+    
+            container.innerHTML = ''; // Clear any old content
+    
+            history.forEach((entry, index) => {
+                const block = document.createElement('div');
+                block.className = 'credential-history-block';
+            
+                const timestamp = new Date(entry.lastRefreshed).toLocaleString();
+                const blockId = `history-block-${index}`;
+            
+                block.innerHTML = `
+                    <div class="history-header" data-toggle="${blockId}" style="cursor: pointer; font-weight: 500; margin-bottom: 4px;">
+                        <span><strong>${index + 1}.</strong> Account: <strong>${entry.accountId}</strong>, Role: <strong>${entry.roleName}</strong></span><br>
+                        <em style="font-size: 11px;">Refreshed: ${timestamp}</em>
+                    </div>
+
+                    <div id="${blockId}" class="history-details" style="display: none; margin-top: 10px;">
+                        <div class="tab-container">
+                            <div class="tab-buttons">
+                                <button class="tab-btn active" data-tab="${blockId}-aws">AWS Credentials</button>
+                                <button class="tab-btn" data-tab="${blockId}-bash">Bash/Zsh</button>
+                                <button class="tab-btn" data-tab="${blockId}-ps">PowerShell</button>
+                            </div>
+                            <div class="tab-content">
+                                <div class="tab-panel active" id="${blockId}-aws">
+                                    <div class="sub-credential-block">
+                                        <pre>${entry.credentialsFile}</pre>
+                                        <button class="copy-btn" data-copy="${entry.credentialsFile}">Copy</button>
+                                    </div>
+                                </div>
+                                <div class="tab-panel" id="${blockId}-bash">
+                                    <div class="sub-credential-block">
+                                        <pre>${entry.env_variables}</pre>
+                                        <button class="copy-btn" data-copy="${entry.env_variables}">Copy</button>
+                                    </div>
+                                </div>
+                                <div class="tab-panel" id="${blockId}-ps">
+                                    <div class="sub-credential-block">
+                                        <pre>${entry.pwsh_env_variables}</pre>
+                                        <button class="copy-btn" data-copy="${entry.pwsh_env_variables}">Copy</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            
+                container.appendChild(block);
+
+                // Tab switching logic
+                block.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tabId = btn.getAttribute('data-tab');
+                        const parent = btn.closest('.tab-container');
+
+                        parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        parent.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+                        btn.classList.add('active');
+                        parent.querySelector(`#${tabId}`).classList.add('active');
+                    });
+                });
+
+                // Copy button logic
+                block.querySelectorAll('.copy-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const content = btn.getAttribute('data-copy');
+                        navigator.clipboard.writeText(content).then(() => this.showToast("Copied to clipboard!"));
+                    });
+                });
+
+            });
+            
+    
+            container.querySelectorAll('.history-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const targetId = header.getAttribute('data-toggle');
+                    const content = document.getElementById(targetId);
+                    if (content) {
+                        content.style.display = content.style.display === 'none' ? 'block' : 'none';
+                    }
+                });
+            });
+            
+            // Copy buttons
+            container.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const content = btn.getAttribute('data-copy');
+                    navigator.clipboard.writeText(content).then(() => this.showToast("Copied to clipboard!"));
+                });
+            });
+        
+        }); // <- This was missing
+    }
+
+}
 let credentialHelperInstance = null;
 
-// Initialize the credential helper when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     if (!credentialHelperInstance) {
         credentialHelperInstance = new CredentialHelper();
     }
+    credentialHelperInstance.loadCredentialHistory(); // <- Add this
 });
 
-// Listen for storage changes to update UI in real-time
 chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'sync' && credentialHelperInstance && credentialHelperInstance.isInitialized) {
-        // Use the existing instance instead of creating a new one
-        credentialHelperInstance.loadCredentials();
+    if (namespace === 'local' && credentialHelperInstance && credentialHelperInstance.isInitialized) {
+        if (changes.currentCredentials) {
+            credentialHelperInstance.loadCredentials();
+        }
+        if (changes.credentialHistory) {
+            credentialHelperInstance.loadCredentialHistory();
+        }
     }
 });
