@@ -91,62 +91,54 @@ function onBeforeRequestEvent(details) {
 }
 
 function extractPrincipalPlusRoleAndAssumeRole(samlattribute, SAMLAssertion) {
-  var reRole = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,<]+/i;
-  var rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,<]+/i;
-  var reSessionDuration = /SessionNotOnOrAfter=.*Z"/g;
+  const reRole = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,<]+/i;
+  const rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,<]+/i;
+  const reSessionDuration = /SessionNotOnOrAfter=.*Z"/g;
 
-  SessionNotOnOrAfter = samlattribute.match(reSessionDuration)[0];
-  sliced = SessionNotOnOrAfter.slice(21, -1);
-  max_timestamp = new Date(sliced).toISOString();
-  current_timestamp = new Date().toISOString();
-  console.log(current_timestamp);
-  console.log(max_timestamp);
+  const SessionNotOnOrAfter = samlattribute.match(reSessionDuration)?.[0];
+  const sliced = SessionNotOnOrAfter?.slice(21, -1);
+  const max_timestamp = new Date(sliced).toISOString();
+  const current_timestamp = new Date().toISOString();
 
   const start = new Date(current_timestamp).getTime();
   const end = new Date(max_timestamp).getTime();
-  let seconds = Math.round(Math.abs(end - start) / 1000);
-  const days = Math.floor(seconds / 86400);
-  seconds -= days * 86400;
-  const hours = Math.floor(seconds / 3600);
-  seconds -= hours * 3600;
-  minutes = Math.floor(seconds / 60);
-  seconds -= minutes * 60;
-  seconds += hours * 3600 + minutes * 60;
+  let seconds = Math.floor(Math.abs(end - start) / 1000);
+  seconds = seconds > 3900 ? seconds - 300 : seconds;
 
-  RoleArn = samlattribute.match(reRole)[0];
-  PrincipalArn = samlattribute.match(rePrincipal)[0];
+  const RoleArn = samlattribute.match(reRole)?.[0];
+  const PrincipalArn = samlattribute.match(rePrincipal)?.[0];
 
-  // Extract account ID and role name
-  const roleParts = RoleArn.match(/arn:aws:iam::(\d+):role\/(.+)/);
+  const roleParts = RoleArn?.match(/arn:aws:iam::(\d+):role\/(.+)/);
   const accountId = roleParts ? roleParts[1] : "";
   const roleName = roleParts ? roleParts[2] : "";
 
-  if (DebugLogs) {
-    console.log("RoleArn: " + RoleArn);
-    console.log("PrincipalArn: " + PrincipalArn);
-    console.log("Extracted Account ID: " + accountId);
-    console.log("Extracted Role Name: " + roleName);
-  }
-
-  var params = {
+  const params = {
     PrincipalArn: PrincipalArn,
     RoleArn: RoleArn,
     SAMLAssertion: SAMLAssertion,
+    ...(seconds > 0 ? { DurationSeconds: seconds } : {})
   };
 
-  if (seconds > 3900) {
-    params.DurationSeconds = seconds - 300;
-  }
+  const sts = new AWS.STS();
 
-  var sts = new AWS.STS();
+  // Try with calculated seconds
   sts.assumeRoleWithSAML(params, function (err, data) {
-    if (err) {
-      console.log("Handling session duration mismatch between SSO and IAM");
-      var new_sts = new AWS.STS();
-      new_sts.assumeRoleWithSAML(params, function (err, data) {
-        if (err) console.log(err, err.stack);
-        else createCredentialArtifacts(data, accountId, roleName);
+    if (err && err.code === "ValidationError" && err.message.includes("DurationSeconds")) {
+      // Retry with 3600 seconds fallback
+      console.warn("Retrying with DurationSeconds = 3600 due to MaxSessionDuration limit");
+      const fallbackParams = {
+        ...params,
+        DurationSeconds: 3600
+      };
+      sts.assumeRoleWithSAML(fallbackParams, function (err2, data2) {
+        if (err2) {
+          console.error("Retry also failed:", err2);
+        } else {
+          createCredentialArtifacts(data2, accountId, roleName);
+        }
       });
+    } else if (err) {
+      console.error("STS Error:", err);
     } else {
       createCredentialArtifacts(data, accountId, roleName);
     }
