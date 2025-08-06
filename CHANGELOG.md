@@ -32,5 +32,5 @@
 - Added last updated info, so you can stop playing credential archaeology.
 - Added multi session support to store last 5 credentials
 
-## [1.6.1] 2025-07-13
+## [1.6.1] 2025-08-05
 - Added session duration try/catch logic to handle shorter MaxSessionDuration validation error
